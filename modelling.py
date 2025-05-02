@@ -12,15 +12,16 @@ from models.classes.RNN import GRU
 model_dict = {
     "lasso": ("./models/lasso.pkl", None, "./data/final_1000.csv"),
     "ffnn": ("./models/ffnn.pt", FFNN, "./data/final_200.csv"),
-    "rnn": ("./models/rnn.pt", GRU, "./data/final_300.csv")
+    "rnn": ("./models/rnn.pt", GRU, "./data/final_300.csv"),
 }
+
 
 def fetch_preds(model_string, start_idx, end_idx):
     """
     Predicts values from the corresponding model between start_idx and end_idx and returns them.
     """
     model_path, model_class, data_path = model_dict[model_string]
-    
+
     x_scaler = MinMaxScaler()
     y_scaler = MinMaxScaler()
 
@@ -35,13 +36,13 @@ def fetch_preds(model_string, start_idx, end_idx):
         y = y_scaler.fit_transform(ili)
         y = y[start_idx:end_idx]
 
-        with open(model_path, 'rb') as f:
+        with open(model_path, "rb") as f:
             model = pickle.load(f)
-    
+
         y_pred_scaled = model.predict(x)
         y_pred = y_scaler.inverse_transform(y_pred_scaled.reshape(-1, 1))
         y_actual = y_scaler.inverse_transform(y.reshape(-1, 1))
-    
+
     elif "rnn" in model_path:
         window_size = 28
 
@@ -62,7 +63,9 @@ def fetch_preds(model_string, start_idx, end_idx):
         n_samples, _, n_features = x_fit.shape
 
         x_fit_reshaped = x_fit.reshape(-1, n_features)
-        x_fit = x_scaler.fit_transform(x_fit_reshaped).reshape(n_samples, window_size, n_features)
+        x_fit = x_scaler.fit_transform(x_fit_reshaped).reshape(
+            n_samples, window_size, n_features
+        )
         y_fit = y_scaler.fit_transform(y_fit).reshape(n_samples, window_size)
 
         del x_fit
@@ -91,11 +94,13 @@ def fetch_preds(model_string, start_idx, end_idx):
         y_pred_scaled = y_pred_tensor.cpu().numpy()
         y_pred = y_scaler.inverse_transform(y_pred_scaled)
 
-        y_actual = y_scaler.inverse_transform(y_tensor.cpu().numpy())  # essentially ili as a np array
-        
+        y_actual = y_scaler.inverse_transform(
+            y_tensor.cpu().numpy()
+        )  # essentially ili as a np array
+
         y_pred = y_pred[:, -1].reshape(-1, 1)
         y_actual = y_actual[:, -1].reshape(-1, 1)
-    
+
     else:  # ffnn
         data = pd.read_csv(data_path)
         x = x_scaler.fit_transform(data)
@@ -121,7 +126,9 @@ def fetch_preds(model_string, start_idx, end_idx):
         y_pred_scaled = y_pred_tensor.cpu().numpy()
         y_pred = y_scaler.inverse_transform(y_pred_scaled)
 
-        y_actual = y_scaler.inverse_transform(y_tensor.cpu().numpy())  # essentially ili as a np array
+        y_actual = y_scaler.inverse_transform(
+            y_tensor.cpu().numpy()
+        )  # essentially ili as a np array
 
     mae = mean_absolute_error(y_actual, y_pred)
     mse = mean_squared_error(y_actual, y_pred)
@@ -140,7 +147,11 @@ def create_windows(x, y, window_size=28):
 
     n_samples = len(x)
 
-    x_windows = np.array([x[i:i + window_size] for i in range(n_samples - window_size + 1)])
-    y_windows = np.array([y[i:i + window_size].flatten() for i in range(n_samples - window_size + 1)])
+    x_windows = np.array(
+        [x[i : i + window_size] for i in range(n_samples - window_size + 1)]
+    )
+    y_windows = np.array(
+        [y[i : i + window_size].flatten() for i in range(n_samples - window_size + 1)]
+    )
 
     return x_windows, y_windows
